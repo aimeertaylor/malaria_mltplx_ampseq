@@ -1,0 +1,6 @@
+
+**/RData/Archived/*.RData
+**/.Rhistory
+
+# Ignore all the DS_Stores
+**/.DS_Store
