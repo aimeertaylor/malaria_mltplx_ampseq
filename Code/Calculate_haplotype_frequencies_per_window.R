@@ -53,7 +53,7 @@ hap.frequencies.FG <- data.frame("start" = as.numeric(),
                                  "hap.frequencies" = as.numeric())
 
 CalculateHaplotypeFrequencies <- function(region, df.to.append, df.of.windows, 
-                                      save.incrementally = FALSE) {
+                                          save.incrementally = FALSE) {
   # Wrapper function to calculate haplotype frequency data per chromosome
   # per region, for all samples with complete data over that window.  
   #
@@ -70,9 +70,8 @@ CalculateHaplotypeFrequencies <- function(region, df.to.append, df.of.windows,
   #  Data frame that was given as arg, with all generated data. 
   for (n in 1:14) {
     # set up internal variables
-    file.name <- paste0(#"/seq/plasmodium/emilylav/subtelomeric/", # add this if running on server!
+    file.name <- paste0("/seq/plasmodium/emilylav/subtelomeric/", # add this if running on server!
                         region, "-", chromosomes.df$chromosome[n], ".vcf.gz")
-    #sw.name <- paste0(region, ".sw.", chromosomes.df$chromosome[n])
     
     # load data and filter to only SNPs 
     current.loci <- VCFloci(file.name)
@@ -104,7 +103,17 @@ CalculateHaplotypeFrequencies <- function(region, df.to.append, df.of.windows,
     
     # pull current chromosome window data from overall dataset
     temp.windows <- df.of.windows %>% 
-      filter(chromosome == chromosomes.df$chromosome[n]) 
+      filter(chromosome == chromosomes.df$chromosome[n])
+    
+    # filter to only windows with nonzero hap.div scores!
+    if (region == "Senegal") {
+      region.abbr <- "S"
+    } else {
+      region.abbr <- "FG"
+    }
+    region.abbr.var <- paste0(region.abbr, ".hap.div")
+    temp.windows <- temp.windows %>% 
+      filter(get(region.abbr.var) > 0)
     
     for (k in 1:nrow(temp.windows)) {
       start <- temp.windows$start[k]
@@ -129,10 +138,11 @@ CalculateHaplotypeFrequencies <- function(region, df.to.append, df.of.windows,
     
     if (save.incrementally) {
       data.name <- paste("hap_freqs_", region, chromosomes.df$chromosome[n], 
-                         window.length, jump.length, ".RData", sep = "_")
+                         ".RData", sep = "_")
       save(temp.windows, file = data.name)
     }
   }
+  return(df.to.append)
 }
 
 #####
