@@ -29,6 +29,12 @@ Data_ <- hmmInput_freqs$TM_WGS[,c(1,2)] # Using Thai positions as a template (Wh
 m <- 100
 K <- 2
 frequencies <- matrix(0.5, nrow = m, ncol = 2) # all 0.5
+pcts = seq(0,100,10)
+chrom_clust = 1 # Chromosome onto which to cluster markers
+chrom_clust_ind = which(Data_$chrom == chrom_clust)
+RUN = F
+PDF = T
+
 
 ## Mechanism to generate Ys given fs, distances, k, r, epsilon
 simulate_Ys_hmm <- function(frequencies, distances, k, r, epsilon){
@@ -45,49 +51,51 @@ compute_rhat_hmm <- function(frequencies, distances, Ys, epsilon){
   return(rhat) 
 }
 
-
-#===================================================
-# Generate distances for different spacing strategies 
-#===================================================
-# first sample different disatances
-set.seed(1)
-pcts = seq(0,100,10)
-chrom_clust = 1
-chrom_clust_ind = which(Data_$chrom == chrom_clust)
-Distances = lapply(pcts, function(pct){
-  indices_clust = sample(chrom_clust_ind, m*pct/100)
-  indices_other = sample(nrow(Data_), m - length(indices_clust))
-  indices = sort(c(indices_clust, indices_other))
-  data_ <- Data_[indices,]
-  data_$dt <- c(diff(data_$pos), Inf)
-  pos_change_chrom <- 1 + which(diff(data_$chrom) != 0) # find places where chromosome changes
-  data_$dt[pos_change_chrom-1] <- Inf
-  data_$dt
-})
-
-#===================================================
-# Generate results for different spacing strategies 
-#===================================================
-Results_dts = lapply(Distances, function(distances){
-  pars <- foreach (irepeat = 1:nrepeats, .combine = rbind) %dorng% {
+if(RUN){
+  #===================================================
+  # Generate distances for different spacing strategies 
+  #===================================================
+  # first sample different disatances
+  Distances = lapply(pcts, function(pct){
+    indices_clust = sample(chrom_clust_ind, m*pct/100)
+    indices_other = sample(nrow(Data_), m - length(indices_clust))
+    indices = sort(c(indices_clust, indices_other))
+    data_ <- Data_[indices,]
+    data_$dt <- c(diff(data_$pos), Inf)
+    pos_change_chrom <- 1 + which(diff(data_$chrom) != 0) # find places where chromosome changes
+    data_$dt[pos_change_chrom-1] <- Inf
+    data_$dt
+  })
+  
+  #===================================================
+  # Generate results for different spacing strategies 
+  #===================================================
+  Results_dts = lapply(Distances, function(distances){
+    pars <- foreach (irepeat = 1:nrepeats, .combine = rbind) %dorng% {
+      Ys_IBDs = simulate_Ys_hmm(frequencies, distances, kfixed, rfixed, epsilon)
+      compute_rhat_hmm(frequencies, distances, Ys_IBDs$Ys, epsilon)}
+  })
+  names(Results_dts) = pcts
+  
+  #===================================================
+  # Generate results under independence and append
+  #===================================================
+  distances = rep(Inf, length = m)
+  Results_inf <- foreach (irepeat = 1:nrepeats, .combine = rbind) %dorng% {
     Ys_IBDs = simulate_Ys_hmm(frequencies, distances, kfixed, rfixed, epsilon)
     compute_rhat_hmm(frequencies, distances, Ys_IBDs$Ys, epsilon)}
-})
-names(Results_dts) = pcts
+  Results_dts[['-10']] = Results_inf 
+  save(Distances, Results_dts, file = '../RData/Results_dts.RData')
+}
 
-#===================================================
-# Generate results under independence and append
-#===================================================
-distances = rep(Inf, length = m)
-Results_inf <- foreach (irepeat = 1:nrepeats, .combine = rbind) %dorng% {
-  Ys_IBDs = simulate_Ys_hmm(frequencies, distances, kfixed, rfixed, epsilon)
-  compute_rhat_hmm(frequencies, distances, Ys_IBDs$Ys, epsilon)}
-Results_dts[['-10']] = Results_inf 
 
 #===================================================
 # Plot error associated with different strategies
 #===================================================
+if(!RUN){load('../RData/Results_dts.RData')}
+if(PDF){pdf('../Plots/Plots_chromosomally_clustered.pdf')}
 require(RColorBrewer)
+
 par(mfrow = c(2,1), mar = c(4,4,1,1))
 rmse_r = sapply(Results_dts, function(x){sqrt(median((x[,2] - rfixed)^2))})
 rmse_k = sapply(Results_dts, function(x){sqrt(median((x[,1] - kfixed)^2))})
@@ -144,3 +152,4 @@ par(mfrow = c(2,1))
 plot(sapply(Distances, function(x){mean(is.infinite(x))}), ylab = 'Proportion Inf')
 plot(sapply(Distances, function(x){mean(x[!is.infinite(x)])}), ylab = 'Mean finite distance')
 
+if(PDF){dev.off()}
