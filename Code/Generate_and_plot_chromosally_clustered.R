@@ -30,7 +30,7 @@ m <- 100
 K <- 2
 frequencies <- matrix(0.5, nrow = m, ncol = 2) # all 0.5
 pcts = seq(0,100,10)
-chrom_clust = 1 # Chromosome onto which to cluster markers
+chrom_clust = 7 # Chromosome onto which to cluster markers
 chrom_clust_ind = which(Data_$chrom == chrom_clust)
 RUN = F
 PDF = T
@@ -46,7 +46,7 @@ simulate_Ys_hmm <- function(frequencies, distances, k, r, epsilon){
 compute_rhat_hmm <- function(frequencies, distances, Ys, epsilon){
   ndata <- nrow(frequencies)
   ll <- function(k, r) loglikelihood_cpp(k, r, Ys, frequencies, distances, epsilon, rho = 7.4 * 10^(-7))
-  optimization <- optim(par = c(kfixed, 0.5), fn = function(x) - ll(x[1], x[2]))
+  optimization <- optim(par = c(50, 0.5), fn = function(x) - ll(x[1], x[2]))
   rhat <- optimization$par
   return(rhat) 
 }
@@ -97,16 +97,16 @@ if(PDF){pdf('../Plots/Plots_chromosomally_clustered.pdf')}
 require(RColorBrewer)
 
 par(mfrow = c(2,1), mar = c(4,4,1,1))
-rmse_r = sapply(Results_dts, function(x){sqrt(median((x[,2] - rfixed)^2))})
+rmse_r = sapply(Results_dts, function(x){sqrt(mean((x[,2] - rfixed)^2))})
 rmse_k = sapply(Results_dts, function(x){sqrt(median((x[,1] - kfixed)^2))})
-plot(x = c(pcts, -10), y = rmse_r, pch = 16, 
+plot(x = c(pcts, -10), y = rmse_r, pch = 16, las = 1, cex.lab = 0.7, 
      xlab = sprintf('Percent of %s markers targeted to chromosome %s', m, chrom_clust), 
-     ylab = 'Root median square error')  
+     ylab = sprintf('Root mean square error around data generating r = %s', rfixed))   
 axis(side = 1, at = -10, labels = 'Independence', las = 2, cex.axis = 0.5)
 
-plot(x = c(pcts, -10), y = rmse_k, pch = 16, 
+plot(x = c(pcts, -10), y = rmse_k, pch = 16, las = 1, cex.lab = 0.7, 
      xlab = sprintf('Percent of %s markers targeted to chromosome %s', m, chrom_clust), 
-     ylab = 'Root median square error')
+     ylab = sprintf('Root median square error around data generating k = %s', kfixed))
 axis(side = 1, at = -10, labels = 'Independence', las = 2, cex.axis = 0.5)
 
 #===================================================
@@ -134,22 +134,23 @@ for(i in 1:(length(Results_dts)-1)){
 # Plots of k
 #---------------------------------------------------
 par(mfrow = c(3,4), mar = c(4,4,1,1))
-# First plot result assumint independence
+# First plot result assuming independence
 plot(sort(Results_dts[[length(Results_dts)]][,1]), col = 'gray', main = 'Independence', 
      pch = 20, ylim = c(0,20), ylab = 'Estimate of k')
+abline(h = kfixed, lty = 'dashed')
 
 # Second plot results for different percent of markers targeted to chrom_clust
 for(i in 1:(length(Results_dts)-1)){
   plot(sort(Results_dts[[i]][,1]), col = cols[i], main = sprintf('%s percent',names(Results_dts)[i]), 
-       pch = 20, ylim = c(0,20), ylab = 'Estimate of k')}
-
+       pch = 20, ylim = c(0,20), ylab = 'Estimate of k')
+  abline(h = kfixed, lty = 'dashed')}
 
 #---------------------------------------------------
 # Changes in distance with clustering
 #---------------------------------------------------
 # Proportion NA doesn't change much with clustering: 
 par(mfrow = c(2,1))
-plot(sapply(Distances, function(x){mean(is.infinite(x))}), ylab = 'Proportion Inf')
-plot(sapply(Distances, function(x){mean(x[!is.infinite(x)])}), ylab = 'Mean finite distance')
+plot(sapply(Distances, function(x){mean(is.infinite(x))}), ylab = 'Proportion Inf', pch = 20)
+plot(sapply(Distances, function(x){mean(x[!is.infinite(x)])}), ylab = 'Mean finite distance', pch = 20)
 
 if(PDF){dev.off()}
