@@ -4,6 +4,7 @@
 #
 # To-do: 
 # - calculate example CIs
+# - better to use / exclude sample size correction?
 ###################################################################
 
 ## Set up
@@ -55,8 +56,8 @@ compute_rhat_hmm <- function(frequencies, distances, Ys, epsilon){
 #====================================================
 # Format diversity data from French Guiana and Senegal datasets
 data_ = read.csv(file = '~/Dropbox/IBD_IBS/Original_data/high.hap.div.csv', as.is = T) # This is old data without frequencies
-load('~/Documents/BroadLaptop/AmpSeq/RData/FromEmily/top.windows.hap.frequencies.FG.RData', )
-load('~/Documents/BroadLaptop/AmpSeq/RData/FromEmily/top.windows.hap.frequencies.Senegal.RData')
+load('../RData/FromEmily/top.windows.hap.frequencies.FG.RData')
+load('../RData/FromEmily/top.windows.hap.frequencies.Senegal.RData')
 
 # Check identity of first 5 columns before creating data_
 if(identical(top.windows.hap.frequencies.FG[,1:5], top.windows.hap.frequencies.Senegal[,1:5])){
@@ -108,8 +109,7 @@ for(i in 1:Mmax){
 }
 
 #++++++++++++++++++++++++++++
-# Diversities appear to be off = raise in meeting 
-# Due to the sample-estimate correction - think about
+# Diversities are a bit off due to the sample-estimate correction 
 myDiv_S = 1-rowSums(frequencies_S^2)
 myDiv_FG = 1-rowSums(frequencies_FG^2)
 par(mfrow = 2:1, pty = 'm')
@@ -133,8 +133,7 @@ hist(data_$Keff_S); range(data_$Keff_S)
 Med_Keff = apply(data_[c('Keff_FG', 'Keff_S')], 1, median)
 par(mfrow = c(1,2))
 plot(Med_Keff, data_$dt)
-plot(Med_Keff, log(data_$dt))
-# log(distances is of the same order of magnitude as Keff)
+plot(Med_Keff, log(data_$dt)) # log(distances) is of the same order of magnitude as Keff = means each given approximately equal importance
 
 # There are many ways to make this more nuanced
 Order_dt = sort.int(log(data_$dt), decreasing = T, index.return = T)$ix
@@ -223,8 +222,8 @@ if(RUN){
 }
 
 
-
-
+# Save data for playing with elsewhere
+save(data_, file = '../RData/data_FG_S.RData')
 
 
 
