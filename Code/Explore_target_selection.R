@@ -15,24 +15,22 @@
 # Morever, it may be preferable to preference distance over cardinality? 
 # If we used the log trick, we'd need to first check log(distances)
 # are always on off the same magnitudes as effective cardinality
+# 
+# NEED TO FIND A WAY TO EVALUATE WHETHER ONE METHOD BETTER ANOTHEr
+# COULD JUST SIMULATE. VARIATION IN APPROACH
 ###################################################
 load('~/Documents/BroadLaptop/TM_border/QuantLocalPfConnIBD/')
-load('../RData/data_FG_S.RData')
+load('../RData/data_FG_S.RData') # Load data
 
-data_$Med_Keff = apply(data_[c('Keff_FG', 'Keff_S')], 1, median)
-data_$Med_div = 1-(1/data_$Med_Keff)
-data_$Med_div_01 = (data_$Med_div - min(data_$Med_div))/(max(data_$Med_div)-min(data_$Med_div))
-panel_strategies = c('Sample at random', 
-                     'Maximise effective cardinality', 
-                     'Maximise log(distance) * effective cardinality', 
-                     'Maximise distance')
+data_$Med_Keff = apply(data_[c('Keff_FG', 'Keff_S')], 1, median) # Median eff. card.
+data_$Med_div = 1-(1/data_$Med_Keff) # Med. diversity
+data_$Med_div_01 = (data_$Med_div-min(data_$Med_div))/(max(data_$Med_div)-min(data_$Med_div)) # Normalise for colour res.
 
-# Colour in zero one
+# Function to map number in zero one to colour
 col_mapper <- function(num){
   x = colorRamp(rainbow(100, end = 0.8))(num)
   rgb(x[1], x[2], x[3], maxColorValue=255)
 }
-
 
 
 #=============================================================
@@ -55,6 +53,11 @@ for(chr in 1:14){segments(y0 = chr, y1 = chr, x0 = 1, x1 = chr_lengths[chr])}
 #=============================================================
 # Previous target selection functions 
 #=============================================================
+panel_strategies = c('Sample at random', 
+                     'Maximise effective cardinality', 
+                     'Maximise log(distance) * effective cardinality', 
+                     'Maximise distance')
+
 # The function for target selection, assuming data has effective cardinality 
 target_selection = function(data_, m, panel_strategy){
   
@@ -87,13 +90,19 @@ target_selection = function(data_, m, panel_strategy){
 # Plot positions for previous target selection functions 
 # Variance doesn't capture spatial clustering
 #=============================================================
-par(mfrow = c(2,2))
+par(mfrow = c(3,2))
 m = 100 # Number of markers we'd like
 for(panel_strategy in panel_strategies){
   Targets = target_selection(data_, m, panel_strategy)
+  
+  # Recalculate distance
+  Targets$dt <- c(diff(Targets$pos), Inf)
+  pos_change_chrom <- 1 + which(diff(Targets$chrom) != 0) # find places where chromosome changes
+  Targets$dt[pos_change_chrom-1] <- Inf
   finite_dt = Targets$dt[is.finite(Targets$dt)]
+  
   print(finite_dt)
-  sd_finite_dt = sd(finite_dt)
+  
   plot(y = Targets$chrom, x = Targets$pos, pch = 20, las = 1, bty = 'n', ylim = c(1,14), 
        yaxt = 'n', ylab = 'Chromosome', xlab = 'Position', 
        col = unlist(sapply(Targets$Med_div_01, col_mapper)), 
@@ -102,8 +111,11 @@ for(panel_strategy in panel_strategies){
   for(chr in 1:14){
     segments(y0 = chr, y1 = chr, x0 = 1, x1 = chr_lengths[chr])
   }
-  title(xlab = bquote("Stdev. finite"~italic(d[t]) == .(round(sd_finite_dt))), 
+  title(xlab = bquote("Stdev. finite"~italic(d[t]) == .(round(sd(finite_dt)))), 
         line = -2, cex = 0.75, adj = 1)
+  title(xlab = bquote("Med. finite"~italic(d[t]) == .(round(median(finite_dt)))), 
+        line = -3, cex = 0.75, adj = 1)
+  
 }
 
 
@@ -150,7 +162,7 @@ target_selection_new = function(data_, m, R = 1000){
       
       diffs = ind_acceptd - ind_propose[t]
       diff_sign_diffs = diff(sign(diffs))
-        
+      
       if(all(diff_sign_diffs == 0)){
         # If the all accepted are larger
         if(all(diffs > 0)){
@@ -184,7 +196,7 @@ target_selection_new = function(data_, m, R = 1000){
         dts[diff(data_t$chrom) != 0] <- Inf 
         if(any(dts < R)){ # If close to either of its neighbours, exclude
           next()} else {
-          ind_acceptd = c(ind_acceptd, ind_propose[t])}
+            ind_acceptd = c(ind_acceptd, ind_propose[t])}
       }
       ind_acceptd = sort(ind_acceptd)
     }
@@ -199,20 +211,26 @@ target_selection_new = function(data_, m, R = 1000){
 # Plot positions for previous target selection functions 
 # Variance doesn't capture spatial clustering
 #=============================================================
-par(mfrow = c(2,2))
-m = 100 # Number of markers we'd like
-for(m in c(20,50,100,200)){
-  Targets = target_selection_new(data_, m)
-  plot(y = Targets$chrom, x = Targets$pos, pch = 20, las = 1, bty = 'n', ylim = c(1,14), 
-       yaxt = 'n', ylab = 'Chromosome', xlab = 'Position', 
-       col = unlist(sapply(Targets$Med_div_01, col_mapper)), 
-       main = m)
-  axis(side = 2, at = 1:14, las = 1, tick = F)
-  for(chr in 1:14){
-    segments(y0 = chr, y1 = chr, x0 = 1, x1 = chr_lengths[chr])
-  }
-  title(xlab = bquote("Stdev. finite"~italic(d[t]) == .(round(sd_finite_dt))), 
-        line = -2, cex = 0.75, adj = 1)
+Targets = target_selection_new(data_, m)
+
+# Recalculate distance
+Targets$dt <- c(diff(Targets$pos), Inf)
+pos_change_chrom <- 1 + which(diff(Targets$chrom) != 0) # find places where chromosome changes
+Targets$dt[pos_change_chrom-1] <- Inf
+finite_dt = Targets$dt[is.finite(Targets$dt)]
+
+plot(y = Targets$chrom, x = Targets$pos, pch = 20, las = 1, bty = 'n', ylim = c(1,14), 
+     yaxt = 'n', ylab = 'Chromosome', xlab = 'Position', 
+     col = unlist(sapply(Targets$Med_div_01, col_mapper)), 
+     main = "Matérn Type III + Strauss esque")
+
+axis(side = 2, at = 1:14, las = 1, tick = F)
+for(chr in 1:14){
+  segments(y0 = chr, y1 = chr, x0 = 1, x1 = chr_lengths[chr])
 }
 
+title(xlab = bquote("Stdev. finite"~italic(d[t]) == .(round(sd(finite_dt)))), 
+      line = -2, cex = 0.75, adj = 1)
+title(xlab = bquote("Med. finite"~italic(d[t]) == .(round(median(finite_dt)))), 
+      line = -3, cex = 0.75, adj = 1)
 
