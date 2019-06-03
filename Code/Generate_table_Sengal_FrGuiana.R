@@ -108,6 +108,8 @@ for(i in 1:Mmax){
   frequencies_S[i,1:length(FreqS_i)] <- FreqS_i
 }
 
+save(frequencies_FG, frequencies_S, file = '../RData/freq_FG_S.RData')
+
 #++++++++++++++++++++++++++++
 # Diversities are a bit off due to the sample-estimate correction 
 myDiv_S = 1-rowSums(frequencies_S^2)
