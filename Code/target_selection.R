@@ -3,8 +3,9 @@
 # panel_strategy: 'Sample at random', 'Maximise effective cardinality', 
 # 'Maximise log(distance) * effective cardinality', 'Maximise distance'
 # assuming data has effective cardinality 
+# Best panel strategy as default
 #=============================================================
-target_selection_static_dt = function(data_, m, panel_strategy){
+target_selection_static_dt = function(data_, m, panel_strategy = 'Maximise log(distance) * effective cardinality'){
   
   Mmax = nrow(data_)
   
@@ -39,10 +40,22 @@ target_selection_static_dt = function(data_, m, panel_strategy){
 #=============================================================
 # New target selection function: can we do better? 
 # http://www1.cmc.edu/pages/faculty/MHuber/Research/talks/huber_talk_2011h.pdf
+# Problem: if R is set too high and hard, while loop liable to loop forever
 #=============================================================
-target_selection_dynmic_dt = function(data_, m, R = 1000){
+target_selection_dynmic_dt = function(data_, m, R = 100000){
   
   Mmax = nrow(data_)
+  
+  # First check spacing is not impossible and scale if it is 
+  if(R > 23000000/m){
+    count = 1.5
+    while(R > 23000000/m){
+      R = R/count
+      count = count + 0.5
+      print(R)
+    }
+    writeLines(sprintf('The original minimum spacing was impossible given the density of %s markers \nand has thus has been divided by %s providing a new minimum spacing of %s', m, count-0.5, R))
+  }
   
   #========================================================
   # First step inspired by Matérn Type III process
@@ -67,6 +80,8 @@ target_selection_dynmic_dt = function(data_, m, R = 1000){
   
   #========================================================
   # Second stepp inspired by Strauss process
+  # with 50/50 chance of being accepted if < R and accepted
+  # with probability one otherwise. 
   #========================================================
   m_remain = m - length(ind_acceptd)
   
@@ -87,9 +102,13 @@ target_selection_dynmic_dt = function(data_, m, R = 1000){
           data_t = data_[c(ind_propose[t],ind_acceptd[1]),] 
           dt <- diff(data_t$pos) # Two distances 
           dt[diff(data_t$chrom) != 0] <- Inf 
-          if(dt < R){ # If close to either of its neighbours, exclude
-            next()} else {
-              ind_acceptd = c(ind_propose[t], ind_acceptd)}
+          if(dt < R){ # If close either of its neighbours,
+            keep = as.logical(sample(0:1, 1, replace = F)) # Flip a coin
+            if(keep){ind_acceptd = c(ind_propose[t], ind_acceptd)}else{data_t = data_[-ind_propose[t]]}
+          } else {
+            # Accept
+            ind_acceptd = c(ind_propose[t], ind_acceptd)
+          }
         } 
         
         # If the all accepted are smaller
@@ -99,8 +118,10 @@ target_selection_dynmic_dt = function(data_, m, R = 1000){
           dt <- diff(data_t$pos) # Two distances 
           dt[diff(data_t$chrom) != 0] <- Inf 
           if(dt < R){ # If close to either of its neighbours, exclude
-            next()} else {
-              ind_acceptd = c(ind_acceptd, ind_propose[t])}
+            keep = as.logical(sample(0:1, 1, replace = F)) # Flip a coin
+            if(keep){ind_acceptd = c(ind_acceptd,ind_propose[t])}else{data_t = data_[-ind_propose[t]]}
+          } else {
+            ind_acceptd = c(ind_acceptd, ind_propose[t])}
         } 
       } else {
         # Find closest neighbours in ind_accepted
@@ -112,7 +133,9 @@ target_selection_dynmic_dt = function(data_, m, R = 1000){
         dts <- diff(data_t$pos) # Two distances 
         dts[diff(data_t$chrom) != 0] <- Inf 
         if(any(dts < R)){ # If close to either of its neighbours, exclude
-          next()} else {
+          keep = as.logical(sample(0:1, 1, replace = F)) # Flip a coin
+          if(keep){ind_acceptd = c(ind_acceptd,ind_propose[t])}else{data_t = data_[-ind_propose[t]]}
+          } else {
             ind_acceptd = c(ind_acceptd, ind_propose[t])}
       }
       ind_acceptd = sort(ind_acceptd)
