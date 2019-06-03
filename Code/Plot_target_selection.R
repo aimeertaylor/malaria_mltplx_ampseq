@@ -15,9 +15,6 @@
 # Morever, it may be preferable to preference distance over cardinality? 
 # If we used the log trick, we'd need to first check log(distances)
 # are always on off the same magnitudes as effective cardinality
-# 
-# NEED TO FIND A WAY TO EVALUATE WHETHER ONE METHOD BETTER ANOTHEr
-# COULD JUST SIMULATE. VARIATION IN APPROACH
 ###################################################
 load('../RData/data_FG_S.RData') # Load data
 source('./target_selection.R') # functions to select targets
