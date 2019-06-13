@@ -69,9 +69,10 @@ amp_order = amp_data$Amplicon_name
 frqs_per_country = dlply(amp_frqs, 'Country', function(x){
   rownames(x) = x$Amplicon_name
   y = x[amp_order,] # Order amplicons
-  z = t(apply(y[, Genotypes], 1, sort, decreasing = T)) # Order frequencies
+  z = t(apply(y[, Genotypes], 1, function(f) sort(as.numeric(f), decreasing = T))) # Order frequencies as numeric
 })
 
+
 # Save for reference
-save(amp_data,frqs_per_country,file = '../RData/sanger_amp_data_for_IBDsim.RData')
+save(amp_data,frqs_per_country, file = '../RData/sanger_amp_data_for_IBDsim.RData')
 
