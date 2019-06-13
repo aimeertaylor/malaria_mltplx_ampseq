@@ -23,7 +23,8 @@ rfixed <- rinit <- 0.5
 rho <- 7.4 * 10^(-7)
 load('../RData/sanger_amp_data_for_IBDsim.RData') # Data
 Countries = names(frqs_per_country)
-RUN = F
+RUN = T
+
 
 ## Mechanism to generate Ys given fs, distances, k, r, epsilon
 simulate_Ys_hmm <- function(frequencies, distances, k, r, epsilon){
@@ -46,14 +47,17 @@ compute_rhat_hmm <- function(frequencies, distances, Ys, epsilon){
 # (1.6 hr on MacBook Air nrepeats and nboot = 100) 
 #=============================================================
 distances <- amp_data$dt
-PPair_results <- list()
-RMSEr_results <- array(NA, dim = c(length(ks),length(rs)), dimnames = list(ks, rs))
-RMSEk_results <- RMSEr_results
+
 
 if(RUN){
   system.time(
     for(Country in Countries){
+      
       frequencies = frqs_per_country[[Country]]
+      PPair_results <- list()
+      RMSEr_results <- array(NA, dim = c(length(ks),length(rs)), dimnames = list(ks, rs))
+      RMSEk_results <- RMSEr_results
+      
       for(r in rs){
         for(k in ks){
           
@@ -97,8 +101,9 @@ if(RUN){
           writeLines(sprintf('\nFinished: r = %s, k = %s',r,k))
         }
       }
+      save(PPair_results, RMSEr_results, RMSEk_results, 
+           sprintf(file = '../RData/Sanger_Amplicon_SimResults_%s.Rdata', Country))
     }
   )
 }
 
-#save(PPair_results, RMSEr_results, RMSEk_results, file = '../RData/Sanger_Amplicon_SimResults.Rdata')
