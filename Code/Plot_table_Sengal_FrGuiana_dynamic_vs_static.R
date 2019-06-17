@@ -2,9 +2,14 @@
 # This script plots RMSE based on microhaplotype data from 
 # French Guiana and Senegal
 ###################################################################
-load('../RData/Tables_rs_FG_S_dynamic_vs_static.RData.RData')
-PDF = F
-if(PDF){pdf('../Plots/Table_Senegal_FrGuiana_dynamic_vs_static.pdf', height = 15, width = 10)}
+load('../RData/Tables_rs_FG_S_dynamic_vs_static.RData')
+PDF = T
+countries = dimnames(tables_many_repeats_m)[[4]]
+panel_strategies = dimnames(tables_many_repeats_m)[[3]]
+load(file = '../RData/freq_FG_S.RData')
+load('../RData/data_FG_S.RData')
+
+if(PDF){pdf('../Plots/Table_Senegal_FrGuiana_dynamic_vs_static.pdf', height = 7, width = 7)}
 
 # Plot
 require(RColorBrewer)
@@ -37,7 +42,7 @@ par(mfrow = c(2,2))
          xlim = range(ms), bty = 'n', xaxt = 'n', las = 2, 
          ylab = 'Root mean squared error', 
          xlab = 'Number of markers (effective cardinality)', 
-         main = paste0(panel_strategy, " (", country, ")"), cex.main = 0.75)
+         main = paste0(panel_strategy, " (", country, ")"), cex.main = 1.2)
     
     
     axis(side = 1, at = ms, labels = paste0(ms, " (", round(av_Keff,1), ")"))
