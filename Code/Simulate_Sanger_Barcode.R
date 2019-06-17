@@ -23,7 +23,7 @@ rfixed <- rinit <- 0.5
 rho <- 7.4 * 10^(-7)
 load('../RData/sanger_amp_data_for_IBDsim.RData') # Data
 Countries = names(frqs_per_country)
-RUN = T
+RUN = F
 
 
 ## Mechanism to generate Ys given fs, distances, k, r, epsilon
@@ -102,7 +102,7 @@ if(RUN){
         }
       }
       save(PPair_results, RMSEr_results, RMSEk_results, 
-           sprintf(file = '../RData/Sanger_Amplicon_SimResults_%s.Rdata', Country))
+           file = sprintf('../RData/Sanger_Amplicon_SimResults_%s.Rdata', Country))
     }
   )
 }
