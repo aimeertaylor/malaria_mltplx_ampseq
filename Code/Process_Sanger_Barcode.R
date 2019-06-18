@@ -76,3 +76,17 @@ frqs_per_country = dlply(amp_frqs, 'Country', function(x){
 # Save for reference
 save(amp_data,frqs_per_country, file = '../RData/sanger_amp_data_for_IBDsim.RData')
 
+
+
+load('../RData/sanger_amp_data_for_IBDsim.RData')
+
+Cardinality_summaries = sapply(names(frqs_per_country), function(Country){
+  Kts = 1/rowSums(frqs_per_country[[Country]]^2)
+  range_Kt = range(Kts)
+  c(mean = mean(Kts), 
+    min = range_Kt[1], 
+    max = range_Kt[2], 
+    stdev = sd(Kts))
+})
+
+round(Cardinality_summaries, 2)
