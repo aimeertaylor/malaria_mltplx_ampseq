@@ -7,17 +7,17 @@ library(tidyr)
 library(ggplot2)
 library(readr)
 
-setwd("/Volumes/seq_plasmodium/emilylav/subtelomeric/frequencies")
-load("hap.frequencies.Senegal.RData")
+setwd("~/Desktop/malaria_mltplx_ampseq/RData")
+load("overall.subtelomeric.RData")
 
-hap_div_Senegal_FG <- hap.frequencies.Senegal %>% 
-  select(-haplotypes, -hap.freqs) %>%
+hap_div_S_FG <- subtelomeric.overall.df %>% 
+  #select(-haplotypes, -hap.freqs) %>%
   unite("window", c("chromosome", "start", "stop"), sep = "_", remove = TRUE)
 
 # format into BED file to intersect with gene IDs gff:
-hap_div_windows_BED <- data.frame("chrom" = hap.frequencies.Senegal$chromosome,
-                           "chromStart" = hap.frequencies.Senegal$start,
-                           "chromEnd" = hap.frequencies.Senegal$stop)
+hap_div_windows_BED <- data.frame("chrom" = subtelomeric.overall.df$chromosome,
+                           "chromStart" = subtelomeric.overall.df$start,
+                           "chromEnd" = subtelomeric.overall.df$stop)
 write_tsv(x = hap_div_windows_BED, path = "~/Desktop/hap_div_windows.BED")
 
 # then run on command line: 
@@ -38,7 +38,7 @@ windows_intersection <- windows_intersection %>%
 colnames(windows_intersection) <- c("window", "gene_start", "gene_end", "gene_strand", 
                                     "gene_ID", "gene_size", "overlap_size")
 
-windows_intersection <- join(windows_intersection, hap_div_Senegal_FG)
+windows_intersection <- join(windows_intersection, hap_div_S_FG)
 
 # next, make a df with the top hap.div (HD) scoring window per gene in Senegal
 max_HD_Senegal_per_gene <- windows_intersection %>% 
@@ -87,6 +87,9 @@ genes_df <- data.frame("gene_ID" = genes)
 
 # pull the top window per region for each gene and write csv
 genes_df <- join(genes_df, max_HD_Senegal_per_gene) %>%
-  join(max_HD_FG_per_gene)
+  join(max_HD_FG_per_gene) %>%
+  select(gene_ID, gene_start, gene_end, gene_strand, gene_size, S_window, S_hap_div, 
+         S_overlap_size, S_n, FG_window, FG_hap_div, FG_overlap_size, FG_n)
+  # re-orders columns to group by gene info, S info, FG info
 
 write.csv(genes_df, file = "~/Desktop/genes_hap_div.csv")
