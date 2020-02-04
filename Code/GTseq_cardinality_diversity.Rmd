@@ -1,0 +1,75 @@
+---
+output:
+  pdf_document: default
+  word_document: default
+  html_document: default
+---
+<!-- ################################################################### -->
+<!-- # This script summarises the cardinality and diversity of the  -->
+<!-- # GTseq panel (some overlap with Emily I think) -->
+<!-- ################################################################### -->
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(cache = TRUE, cache.comments = FALSE, 
+                      include = TRUE, echo = F, 
+                      fig.width = 7, fig.height = 7,
+                      fig.pos = 'H', 
+                      dev = 'png', dpi = 300)
+```
+
+
+```{r}
+rm(list = ls())
+require(RColorBrewer)
+require(kableExtra)
+
+# Summary of diversity / cardinality
+load('../RData/GTseq_amp_data_for_IBDsim.RData')
+
+# Extract Cardinalities and diversities
+Cardinalities = sapply(names(frqs_per_country), function(Country){
+  Kts = 1/rowSums(frqs_per_country[[Country]]^2)})
+Diversities = 1-1/Cardinalities
+```
+
+```{r}
+# Amplicon position plot
+plot(amp_data$pos, amp_data$chrom, pch = 20, ylab = 'Chromosome', xlab = 'Chromosomal position (bp)')
+```
+
+```{r}
+# Plot wrt index
+cols = brewer.pal(ncol(Cardinalities), "Dark2")
+matplot(log(Cardinalities), type = "b", pch = 20, lty = 'solid', col = cols)
+matplot(Diversities, type = "b", pch = 20, lty = 'solid', col = cols)
+```
+
+```{r}
+# Plot diversity wrt position
+plot(NULL, las = 1, 
+     yaxt = 'n',
+     bty = 'n', main = 'Diversity', 
+     xlim = range(amp_data$pos), 
+     ylim = range(amp_data$chrom)+c(-0.01,1.01), 
+     ylab = 'Chromosome', 
+     xlab = 'Chromosomal position (bp)')
+abline(h = 1:15)
+for(chr in unique(amp_data$chrom)){
+  amplicons = amp_data$Amplicon_name[amp_data$chrom == chr]
+  matplot(y = Diversities[amplicons,] + chr, 
+          x = amp_data$pos[amp_data$chrom == chr], 
+          type = "b", pch = 20, lty = 'solid', col = cols, add = T)
+}
+legend('bottomright', inset = 0.1, legend = colnames(Diversities), fill = cols)
+```
+
+```{r}
+writeLines("Cardinalities:")
+kable(apply(Cardinalities,2,summary))
+```
+
+```{r}
+writeLines("Diversities:")
+kable(apply(Diversities,2,summary))
+```
+ 
