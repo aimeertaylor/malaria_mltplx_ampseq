@@ -23,7 +23,7 @@ rfixed <- rinit <- 0.5
 rho <- 7.4 * 10^(-7)
 load('../RData/GTseq_amp_data_for_IBDsim.RData') # Data
 Countries = names(frqs_per_country)
-RUN = T
+RUN = F
 
 
 ## Mechanism to generate Ys given fs, distances, k, r, epsilon
