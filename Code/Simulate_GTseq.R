@@ -21,10 +21,18 @@ nboot <- 100 # number of parametric bootstrap iterations for
 kfixed <- kinit <- 8 
 rfixed <- rinit <- 0.5 
 rho <- 7.4 * 10^(-7)
-load('../RData/GTseq_amp_data_for_IBDsim.RData') # Data
-Countries = names(frqs_per_country)
-RUN = F
+RUN = T
+rmCTSA = T
 
+if(rmCTSA){
+  load('../RData/GTseq_amp_data_rmCTSA_for_IBDsim.RData') # Data
+  amp_data <- amp_data_rmCTSA
+  frqs_per_country <- frqs_per_country_rmCTSA
+} else {
+  load('../RData/GTseq_amp_data_for_IBDsim.RData') # Data
+}
+
+Countries = names(frqs_per_country)
 
 ## Mechanism to generate Ys given fs, distances, k, r, epsilon
 simulate_Ys_hmm <- function(frequencies, distances, k, r, epsilon){
@@ -101,8 +109,14 @@ if(RUN){
           writeLines(sprintf('\nFinished: r = %s, k = %s',r,k))
         }
       }
-      save(PPair_results, RMSEr_results, RMSEk_results, 
-           file = sprintf('../RData/GTseq_Amplicon_SimResults_%s.Rdata', Country))
+      
+      if(rmCTSA){
+        save(PPair_results, RMSEr_results, RMSEk_results, 
+             file = sprintf('../RData/GTseq_rmCTSA_Amplicon_SimResults_%s.Rdata', Country))   
+      } else {
+        save(PPair_results, RMSEr_results, RMSEk_results, 
+             file = sprintf('../RData/GTseq_Amplicon_SimResults_%s.Rdata', Country))
+      }
     }
   )
 }

@@ -83,5 +83,15 @@ frqs_per_country = plyr::dlply(amp_frqs, 'Country', function(x){
 
 
 # Save for reference
-save(amp_data,frqs_per_country, file = '../RData/GTseq_amp_data_for_IBDsim.RData')
+# save(amp_data,frqs_per_country, file = '../RData/GTseq_amp_data_for_IBDsim.RData')
+
+# Remove CTSA 
+CTSA = c("zTRAP","zSERA2","zCSP","zAMA1")
+amp_data_rmCTSA = amp_data[!rownames(amp_data) %in% CTSA,]
+frqs_per_country_rmCTSA = lapply(frqs_per_country, function(x){
+  x[!rownames(x) %in% CTSA, ]
+})
+
+save(amp_data_rmCTSA, frqs_per_country_rmCTSA, file = '../RData/GTseq_amp_data_rmCTSA_for_IBDsim.RData')
+
 
