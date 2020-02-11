@@ -5,17 +5,17 @@
 rm(list = ls())
 require(RColorBrewer)
 display.brewer.all(colorblindFriendly = T)
-palettes = c("Senegal" = 'YlGnBu', "Columbia" = 'YlOrRd', "FrenchGuiana" = 'YlGn')
+palettes = c("senegal" = 'YlGnBu', "columbia" = 'YlOrRd', "frenchguiana" = 'YlGn', 'mali' = 'PuRd')
 Countries = names(palettes)
 PDF = F
-if(PDF){pdf(file = '../Plots/Sanger_Barcode_Sim.pdf', width = 8, height = 7)}
+if(PDF){pdf(file = '../Plots/GTseq_Sim.pdf', width = 8, height = 7)}
 par(family = 'serif', pty = 'm')
 
 
 
 for(Country in Countries){
 
-  load(sprintf('../RData/Sanger_Amplicon_SimResults_%s.Rdata', Country))
+  load(sprintf('../RData/GTseq_Amplicon_SimResults_%s.Rdata', Country))
 
   rs = colnames(RMSEk_results)
   ks = rownames(RMSEk_results)
@@ -122,7 +122,7 @@ for(Country in Countries){
 par(mfcol = c(2,length(Countries)), mar = c(4,5,2,2), oma = rep(0,4), pty = 's')
 for(Country in Countries){
   
-  load(sprintf('../RData/Sanger_Amplicon_SimResults_%s.Rdata', Country))
+  load(sprintf('../RData/GTseq_Amplicon_SimResults_%s.Rdata', Country))
   
   rs = colnames(RMSEk_results)
   ks = rownames(RMSEk_results)

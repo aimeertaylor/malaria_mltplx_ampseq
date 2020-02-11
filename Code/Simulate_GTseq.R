@@ -21,7 +21,7 @@ nboot <- 100 # number of parametric bootstrap iterations for
 kfixed <- kinit <- 8 
 rfixed <- rinit <- 0.5 
 rho <- 7.4 * 10^(-7)
-load('../RData/sanger_amp_data_for_IBDsim.RData') # Data
+load('../RData/GTseq_amp_data_for_IBDsim.RData') # Data
 Countries = names(frqs_per_country)
 RUN = F
 
@@ -102,7 +102,7 @@ if(RUN){
         }
       }
       save(PPair_results, RMSEr_results, RMSEk_results, 
-           file = sprintf('../RData/Sanger_Amplicon_SimResults_%s.Rdata', Country))
+           file = sprintf('../RData/GTseq_Amplicon_SimResults_%s.Rdata', Country))
     }
   )
 }

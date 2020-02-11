@@ -36,21 +36,44 @@ chromosomes.df <- data.frame("chromosome" = c("Pf3D7_01_v3", "Pf3D7_02_v3",
                                                  2807160, 3128120))
 
 #####
+setwd("~/Desktop/malaria_mltplx_ampseq/RData/haplotype_frequencies")
+load("hap.frequencies.FG.RData")
+load("hap.frequencies.Senegal.RData")
+
+# 2019-09-26
+# limit windows to only those with >2 haplotypes to plot without 0.5 pileup
+for (i in 1:nrow(hap.frequencies.FG)) {
+  hap.frequencies.FG$FG.n.haps[[i]] <- length(hap.frequencies.FG$haplotypes[[i]])
+}
+
+for (j in 1:nrow(hap.frequencies.Senegal)) {
+  hap.frequencies.Senegal$S.n.haps[[j]] <- length(hap.frequencies.Senegal$haplotypes[[j]])
+}
+
+over_2_haps_FG <- hap.frequencies.FG %>%
+  filter(FG.n.haps > 2, FG.n >= 10) %>%
+  select(-haplotypes, -hap.freqs)
+
+over_2_haps_S <- hap.frequencies.Senegal %>%
+  filter(S.n.haps > 2, S.n >= 10) %>%
+  select(-haplotypes, -hap.freqs)
+
+over_2_haps_all <- plyr::join(over_2_haps_FG, over_2_haps_S, type = "inner")
 
 # plot jitter comparison of subtelomeric data for FG vs Senegal
-g1 <- ggplot(subtelomeric.overall.df, aes(x = FG.hap.div, y = S.hap.div, color = chromosome)) +
-  geom_jitter(alpha = 0.1, size = 1) +
+g1 <- ggplot(over_2_haps_all, aes(x = FG.hap.div, y = S.hap.div, color = chromosome)) +
+  geom_jitter(alpha = 0.5, size = 1) +
   facet_wrap(~ chromosome)
 
-ggsave(g1, filename = "hap.div.jitter.all.chromosomes.png", width = 10, height = 10)
+ggsave(g1, filename = "~/Desktop/hap.div.jitter.all.chromosomes.png", width = 10, height = 10)
 
 # plot 2d bin comparison of subtelomeric data for FG vs Senegal
-g2 <- ggplot(subtelomeric.overall.df, aes(x = FG.hap.div, y = S.hap.div)) +
+g2 <- ggplot(over_2_haps_all, aes(x = FG.hap.div, y = S.hap.div)) +
   stat_bin2d(bins = 25) +
   scale_fill_gradientn(colors = r, trans = "log") +
   facet_wrap( ~ chromosome)
 
-ggsave(g2, filename = "hap.div.2dbin.all.chromosomes.png", width = 10, height = 10)
+ggsave(g2, filename = "~/Desktop/hap.div.2dbin.all.chromosomes.png", width = 10, height = 10)
 
 # plot hap.div scores along chromosome coordinates - hard to see in this combined file
 g3 <- ggplot(no.hets.comparison.tidy, aes(x = start, y = hap.div, color = region)) +
