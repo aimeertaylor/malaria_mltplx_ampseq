@@ -4,10 +4,9 @@ output:
   word_document: default
   html_document: default
 ---
-<!-- ################################################################### -->
-<!-- # This script summarises the cardinality and diversity of the  -->
-<!-- # GTseq panel (some overlap with Emily I think) -->
-<!-- ################################################################### -->
+<!-- ######################################################################### -->
+<!-- # This script summarises the cardinality and diversity of the GTseq panel 
+<!-- ######################################################################### -->
 
 ```{r, include=FALSE}
 knitr::opts_chunk$set(cache = TRUE, cache.comments = FALSE, 
@@ -15,21 +14,26 @@ knitr::opts_chunk$set(cache = TRUE, cache.comments = FALSE,
                       fig.width = 7, fig.height = 7,
                       fig.pos = 'H', 
                       dev = 'png', dpi = 300)
-```
 
-
-```{r}
 rm(list = ls())
 require(RColorBrewer)
 require(kableExtra)
 
 # Summary of diversity / cardinality
 load('../RData/GTseq_amp_data_for_IBDsim.RData')
+```
 
+
+```{r}
 # Extract Cardinalities and diversities
 Cardinalities = sapply(names(frqs_per_country), function(Country){
   Kts = 1/rowSums(frqs_per_country[[Country]]^2)})
 Diversities = 1-1/Cardinalities
+
+# Single out CTSA
+CTSA = rownames(Cardinalities)[grepl("z", rownames(Cardinalities))]
+CTSA_ind = which(rownames(Cardinalities) %in% CTSA)
+writeLines(sprintf("CTSA (unordered) are labelled: %s", paste(CTSA, collapse = ' ')))
 ```
 
 ```{r}
@@ -38,10 +42,29 @@ plot(amp_data$pos, amp_data$chrom, pch = 20, ylab = 'Chromosome', xlab = 'Chromo
 ```
 
 ```{r}
-# Plot wrt index
-cols = brewer.pal(ncol(Cardinalities), "Dark2")
+# match colours across scripts
+palettes = c("frenchguiana" = 'YlGn', 
+             "columbia" = 'YlOrRd', 
+             "senegal" = 'YlGnBu', 
+             'mali' = 'PuRd')
+cols = sapply(colnames(Cardinalities), function(c){brewer.pal(n=3, palettes[c])[3]})
+
+
 matplot(log(Cardinalities), type = "b", pch = 20, lty = 'solid', col = cols)
+# single out CTSA
+abline(v = CTSA_ind, col = 'gray')
+mtext(at = CTSA_ind, side = 3, text = gsub('z', '', CTSA), 
+      las = 2, cex = 0.7, line = 0.25)
+legend('top', horiz = T, inset = -0.01, cex = 0.5, bty = 'n', 
+       legend = colnames(Diversities), fill = cols)
+
 matplot(Diversities, type = "b", pch = 20, lty = 'solid', col = cols)
+# single out CTSA
+abline(v = CTSA_ind, col = 'gray')
+mtext(at = CTSA_ind, side = 3, text = gsub('z', '', CTSA), 
+      las = 2, cex = 0.7, line = 0.25)
+legend('top', horiz = T, inset = -0.01, cex = 0.5, bty = 'n', 
+       legend = colnames(Diversities), fill = cols)
 ```
 
 ```{r}
@@ -54,22 +77,40 @@ plot(NULL, las = 1,
      ylab = 'Chromosome', 
      xlab = 'Chromosomal position (bp)')
 abline(h = 1:15)
+
 for(chr in unique(amp_data$chrom)){
   amplicons = amp_data$Amplicon_name[amp_data$chrom == chr]
   matplot(y = Diversities[amplicons,] + chr, 
           x = amp_data$pos[amp_data$chrom == chr], 
           type = "b", pch = 20, lty = 'solid', col = cols, add = T)
+  
+  # Add CTSA
+  if(chr %in% amp_data[CTSA, 'chrom']){
+    i = which(amp_data[CTSA, 'chrom'] == chr)
+    segments(x0 = amp_data[CTSA[i], 'pos'], 
+             x1 = amp_data[CTSA[i], 'pos'], 
+             y0 = min(Diversities[amplicons,] + chr), 
+             y1 = max(Diversities[amplicons,] + chr), 
+             col = 'black')
+  }
+  
 }
 legend('bottomright', inset = 0.1, legend = colnames(Diversities), fill = cols)
 ```
 
 ```{r}
-writeLines("Cardinalities:")
+writeLines("Cardinalities exc. CTSA:")
+kable(apply(Cardinalities[-CTSA_ind,],2,summary))
+
+writeLines("Cardinalities inc. CTSA:")
 kable(apply(Cardinalities,2,summary))
 ```
 
 ```{r}
-writeLines("Diversities:")
+writeLines("Diversities exc. CTSA:")
+kable(apply(Diversities[-CTSA_ind,],2,summary))
+
+writeLines("Diversities inc. CTSA:")
 kable(apply(Diversities,2,summary))
 ```
  
