@@ -37,12 +37,12 @@ writeLines(sprintf("CTSA (unordered) are labelled: %s", paste(CTSA, collapse = '
 ```
 
 ```{r}
-# Amplicon position plot
+# Amplicon position plot (to-do: add chrom lengths)
 plot(amp_data$pos, amp_data$chrom, pch = 20, ylab = 'Chromosome', xlab = 'Chromosomal position (bp)')
 ```
 
 ```{r}
-# match colours across scripts
+# Manually match colours across scripts (compare with Plot_Sanger_vs_GTseq_Sim.R)
 palettes = c("frenchguiana" = 'YlGn', 
              "columbia" = 'YlOrRd', 
              "senegal" = 'YlGnBu', 
@@ -50,7 +50,8 @@ palettes = c("frenchguiana" = 'YlGn',
 cols = sapply(colnames(Cardinalities), function(c){brewer.pal(n=3, palettes[c])[3]})
 
 
-matplot(log(Cardinalities), type = "b", pch = 20, lty = 'solid', col = cols)
+matplot(log(Cardinalities), type = "b", pch = 20, lty = 'solid', col = cols, 
+        xlab = "Amplicon index")
 # single out CTSA
 abline(v = CTSA_ind, col = 'gray')
 mtext(at = CTSA_ind, side = 3, text = gsub('z', '', CTSA), 
@@ -58,7 +59,8 @@ mtext(at = CTSA_ind, side = 3, text = gsub('z', '', CTSA),
 legend('top', horiz = T, inset = -0.01, cex = 0.5, bty = 'n', 
        legend = colnames(Diversities), fill = cols)
 
-matplot(Diversities, type = "b", pch = 20, lty = 'solid', col = cols)
+matplot(Diversities, type = "b", pch = 20, lty = 'solid', col = cols, 
+        xlab = "Amplicon index")
 # single out CTSA
 abline(v = CTSA_ind, col = 'gray')
 mtext(at = CTSA_ind, side = 3, text = gsub('z', '', CTSA), 
@@ -114,3 +116,23 @@ writeLines("Diversities inc. CTSA:")
 kable(apply(Diversities,2,summary))
 ```
  
+ 
+```{r}
+# What are the top 10 Cardinalities / Diversities
+TopCard <- apply(Cardinalities, 2, function(x){
+  y <- head(sort(x, decreasing = T), 3)
+  return(list(round(y,2)))
+})
+
+TopDiv <- apply(Diversities, 2, function(x){
+  y <- head(sort(x, decreasing = T), 3)
+  return(list(round(y,2)))
+})
+
+TopTab <- cbind(Cardinality = unlist(TopCard), Diversity = unlist(TopDiv))
+
+writeLines("Top three:")
+kable(TopTab)
+```
+
+
