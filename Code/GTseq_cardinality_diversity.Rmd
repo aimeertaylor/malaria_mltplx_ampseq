@@ -19,8 +19,19 @@ rm(list = ls())
 require(RColorBrewer)
 require(kableExtra)
 
+load('../RData/sanger_amp_data_for_IBDsim.RData')
+# Extract Cardinalities and diversities
+Cardinalities = sapply(names(frqs_per_country), function(Country){
+  Kts = 1/rowSums(frqs_per_country[[Country]]^2)})
+mean(Cardinalities)
+mean(Cardinalities) * dim(amp_data)[1]
+
 # Summary of diversity / cardinality
 load('../RData/GTseq_amp_data_for_IBDsim.RData')
+Cardinalities = sapply(names(frqs_per_country), function(Country){
+  Kts = 1/rowSums(frqs_per_country[[Country]]^2)})
+mean(Cardinalities)
+mean(Cardinalities) * dim(amp_data)[1]
 ```
 
 
@@ -115,8 +126,8 @@ kable(apply(Diversities[-CTSA_ind,],2,summary))
 writeLines("Diversities inc. CTSA:")
 kable(apply(Diversities,2,summary))
 ```
- 
- 
+
+
 ```{r}
 # What are the top 10 Cardinalities / Diversities
 TopCard <- apply(Cardinalities, 2, function(x){
@@ -136,3 +147,234 @@ kable(TopTab)
 ```
 
 
+```{r}
+# =======================================================
+# Colours and names of panels and countries
+# =======================================================
+require(RColorBrewer)
+
+# Manually name panels via palettes_panel: 
+palettes_panels = c("Sanger" = 'YlGn', 
+                    "GTseq_rmCTSA" = 'YlGnBu', 
+                    "GTseq" = 'YlOrRd')
+
+# Manually name countries via palettes_panel: 
+palettes_countries = c("frenchguiana" = 'YlGn', 
+                       "columbia" = 'YlOrRd', 
+                       "senegal" = 'YlGnBu', 'mali' = 'PuRd')
+
+# Extract panel and country names: 
+panels = names(palettes_panels)
+countries = names(palettes_countries)
+
+# Single colour per panel ("3" is a magic number since it is the minimum n brewer.pal accepts)
+cols_panels = sapply(panels, function(i){brewer.pal(n=3, palettes_panels[i])[3]})
+
+# Single colour per country ("3" is a magic number since it is the minimum n brewer.pal accepts)
+cols_countries = sapply(countries, function(i){brewer.pal(n=3, palettes_countries[i])[3]})
+```
+
+
+```{r}
+# =======================================================
+# Extract CI lengths and rhat per panel per country
+# =======================================================
+CI_lengths_rhat <- lapply(countries, function(country){
+  
+  CIlengths_rhat_country <- lapply(panels, function(panel, the_country){
+    
+    # Load sim results PPair_results
+    # try() is only necessary because currently we have no results for Sanger mali
+    try_error <- try(load(sprintf('../RData/%s_Amplicon_SimResults_%s.Rdata', panel, country)), 
+                     silent = T)
+    
+    # if statement only necessary because currently we have no results for Sanger mali
+    if(class(try_error) == "try-error"){
+      CIlengths_rhat_panel_country <- NULL 
+    } else {
+      
+      # Extract CI lengths and rhat for a specific panel
+      CIlengths_rhat_panel_country <- lapply(PPair_results, function(w){
+        sapply(w, function(x){
+          c('CIlength' = x['97.5%','r'] - x['2.5%','r'], # Compute
+            'rhat' = x['rkhat','r'])
+        })})
+      
+      # Remove sim results
+      rm(PPair_results) 
+    } 
+    
+    # Return CI lengths and rhat for specific panel and country
+    return(CIlengths_rhat_panel_country)
+  }, the_country = country)
+  
+  # Name by panel (note: lapply doesn't name since panels is unamed)
+  names(CIlengths_rhat_country) <- panels
+  
+  # Return CI lengths and rhat for specific country
+  return(CIlengths_rhat_country)
+})
+
+# Name by country (note: lapply doesn't name since countries is unamed)
+names(CI_lengths_rhat) <- countries
+```
+
+
+```{r, fig.height=8, fig.width=8}
+# =======================================================
+# Plot CI lengths and rhat per country coloured by panel
+# (for all k combined)
+# =======================================================
+par(mfrow = c(2,2))
+for(country in countries){
+  
+  # Extract CI lengths and rhat for country
+  X <- CI_lengths_rhat[[country]]
+  
+  # Extract range of CI lengths for null plot ylim
+  CI_length_range <- range(sapply(X, function(Y){
+    sapply(Y, function(x){x['CIlength',]}) 
+  }))
+  
+  # Null plot CI length versus r for any k with panel overlaid
+  plot(NULL, ylim = CI_length_range, xlim = c(0,1), 
+       main = country, 
+       ylab = 'Length of 95% confidence interval', 
+       xlab = expression(hat(italic(r))))
+  mtext(side = 3, text = 'All simulated k values', line = 0, cex = 0.5)
+  legend('bottom', inset = 0.01, legend = panels, pch = 20, col = cols_panels[panels])
+  
+  for(panel in panels){
+    # Plot CI length versus r for any k
+    points(y = as.vector(sapply(X[[panel]], function(x){x['CIlength',]})),
+           x = as.vector(sapply(X[[panel]], function(x){x['rhat',]})), 
+           pch = 20, 
+           col = adjustcolor(cols_panels[panel], alpha.f = '0.5'))
+  }
+}
+```
+
+```{r, fig.height=10, fig.width=10}
+# =======================================================
+# Plot CI lengths and rhat per country coloured by panel
+# (for all k combined)
+# =======================================================
+All_k_names <- names(CI_lengths_rhat[[1]][[1]])
+Unique_k_names <- unique(do.call(rbind, strsplit(All_k_names, split = ' '))[,1])
+par(mfrow = c(length(Unique_k_names), length(countries)))
+
+for(Unique_k_name in Unique_k_names){
+  
+  for(country in countries){
+    
+    # Extract CI lengths and rhat for country
+    X <- CI_lengths_rhat[[country]]
+    
+    # Extract range of CI lengths for null plot ylim
+    CI_length_range <- range(sapply(X, function(Y){
+      sapply(Y, function(x){x['CIlength',]}) 
+    }))
+    
+    # Null plot CI length versus r for any k with panel overlaid
+    plot(NULL, ylim = CI_length_range, xlim = c(0,1), 
+         main = country, 
+         ylab = 'Length of 95% confidence interval', 
+         xlab = expression(hat(italic(r))))
+    mtext(side = 3, text = Unique_k_name, line = 0, cex = 0.5)
+    legend('bottom', inset = 0.01, legend = panels, pch = 20, col = cols_panels[panels])
+    
+    for(panel in panels){
+      
+      Y = X[[panel]]
+      
+      # Search for names using paste s.t. k=1 doesn't return k=10 etc. 
+      ind <- which(grepl(paste(Unique_k_name, ''), names(Y)))
+      
+      # Plot CI length versus r for any k
+      points(y = as.vector(sapply(ind, function(i){Y[[i]]['CIlength',]})),
+             x = as.vector(sapply(ind, function(i){Y[[i]]['rhat',]})), 
+             pch = 20, 
+             col = adjustcolor(cols_panels[panel], alpha.f = '0.5'))
+    }
+  }}
+```
+
+
+## Plot RMSE per country coloured by panel
+
+```{r}
+# =======================================================
+# Extract RMSE results per panel per country
+# =======================================================
+RMSE <- lapply(countries, function(country){
+  
+  RMSE_country <- lapply(panels, function(panel, the_country){
+    
+    # Load sim results PPair_results
+    # try() is only necessary because currently we have no results for Sanger mali
+    try_error <- try(load(sprintf('../RData/%s_Amplicon_SimResults_%s.Rdata', panel, country)), 
+                     silent = T)
+    
+    # if statement only necessary because currently we have no results for Sanger mali
+    if(class(try_error) == "try-error"){
+      RMSE_panel_country <- NULL 
+    } else {
+      
+      RMSE_panel_country <- RMSEr_results
+      rm(RMSEr_results) # Remove sim results
+    } 
+    
+    # Return CI lengths and rhat for specific panel and country
+    return(RMSE_panel_country)
+  }, the_country = country)
+  
+  # Name by panel (note: lapply doesn't name since panels is unamed)
+  names(RMSE_country) <- panels
+  
+  # Return CI lengths and rhat for specific country
+  return(RMSE_country)
+})
+
+# Name by country (note: lapply doesn't name since countries is unamed)
+names(RMSE) <- countries
+```
+
+
+```{r, fig.height=7, fig.width=7}
+# =======================================================
+# Plot CI lengths and rhat per country coloured by panel
+# (for all k combined)
+# =======================================================
+par(mfrow = c(2,2))
+for(country in countries){
+  
+  # Extract CI lengths and rhat for country
+  Ylim <- range(unlist(RMSE[[country]]))
+  
+  # Null plot CI length versus r for any k with panel overlaid
+  plot(NULL, ylim = Ylim, xlim = c(0,1), 
+       main = country, 
+       ylab = 'RMSE', 
+       xlab = expression(hat(italic(r))))
+  mtext(side = 3, text = 'All simulated k values', line = 0, cex = 0.5)
+  legend('bottom', inset = 0.01, 
+         legend = c(panels, paste('k =', data_generating_ks)),  
+         pch = c(rep(NA, length(panels)), 1:length(data_generating_ks)),
+         lty = c(rep(1, length(panels)), rep(NA, length(data_generating_ks))), 
+         col = c(cols_panels[panels], rep('#000000', length(data_generating_ks))))
+  
+  for(panel in panels){
+    
+    X <- RMSE[[country]][[panel]]
+    data_generating_ks <- rownames(X)
+    
+    for(k in data_generating_ks){
+      # Plot CI length versus r for any k
+      points(y = X[k,],
+             x = as.numeric(names(X[k,])), 
+             pch = which(data_generating_ks == k), type = 'b', 
+             col = adjustcolor(cols_panels[panel], alpha.f = '0.5'))
+    }
+  }
+}
+```
