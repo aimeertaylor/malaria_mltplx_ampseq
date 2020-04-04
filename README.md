@@ -2,8 +2,13 @@
 All code-related files pertaining to the Neafsey lab malaria mltplx ampseq project
 
 ## To-do:
-- make code into R package so others (Emily) can take lead
-- fix spelling mistake colombia
+- update R
+- update CreatingRpackage notes e.g. on NAMESPACE IMPORTS DEPENDS, %foo%
+- sort this directory
+- add pierre as an author
+- polish package then email. 
+- Get Numerical disadvantage ref from Emily De Meester et al. 
+- Change name of Rmd 
 - simulate CTSA on its own (to compare)
 - simulate 24 SNP barcode (to compare)
 - simulate Sanger mali (to compare and so code runs for all countries and panels combined)
@@ -16,5 +21,5 @@ All code-related files pertaining to the Neafsey lab malaria mltplx ampseq proje
 
 ## Viz ideas for paper: 
 - add existing plots to Rmd and combine panels
-- add chrom lengths and CTSA annotations to position plot (static)
-- add dynamic annotations to effective cardinality and diversity plots (Rshiny) 
+- add CTSA annotations to position plot (static)
+- add CI plots as before but comparing panels, not countries
