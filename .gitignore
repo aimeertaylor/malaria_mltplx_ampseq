@@ -1,8 +1,10 @@
-
 **/RData/Archived/*.RData
 **/.Rhistory
 
 # Ignore all the DS_Stores
 **/.DS_Store
+ 
+# Rmd generated files
+**/Code/*_cache/
+**/Code/*_files/
 
-**/notes 
