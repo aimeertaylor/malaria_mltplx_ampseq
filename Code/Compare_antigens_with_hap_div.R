@@ -7,7 +7,7 @@ library(tidyr)
 library(ggplot2)
 library(readr)
 
-setwd("~/Desktop/malaria_mltplx_ampseq/RData")
+setwd("~/Desktop/Lab/ampseq/malaria_mltplx_ampseq/RData")
 load("overall.subtelomeric.RData")
 
 hap_div_S_FG <- subtelomeric.overall.df %>% 
@@ -24,7 +24,7 @@ write_tsv(x = hap_div_windows_BED, path = "~/Desktop/hap_div_windows.BED")
 # bedtools intersect -a hap_div_windows.BED -b PlasmoDB-25_Pfalciparum3D7.GENES.gff -wo > hap_div_windows_in_genes.tsv
 
 # read back in the intersection of windows in coding regions
-windows_intersection <- read_delim("~/Desktop/hap_div_windows_in_genes.tsv", 
+windows_intersection <- read_delim("~/Desktop/Lab/ampseq/Paragon_Sanger_GTseq/Sanger_older/hap_div_windows_in_genes.tsv", 
                                    "\t", escape_double = FALSE, col_names = FALSE, 
                                    trim_ws = TRUE)
 
