@@ -1,40 +1,30 @@
 import allel
+import os
 import numpy as np
 import pandas as pd
-import os
-import time
+import sys
 
-# Input path to file directory:
-os.chdir("/Volumes/seq_plasmodium/emilylav/Mali-R01/")
-# Input the file names for each chromosome's vcf for the region of interest.
-# vcf's should have no indels and have telomeric regions filtered out.
-vcf_list = ["subtelomeric_no_indels_pf3k_Mali_Pf3D7_01_v3.recode.vcf",
-            "subtelomeric_no_indels_pf3k_Mali_Pf3D7_02_v3.recode.vcf",
-            "subtelomeric_no_indels_pf3k_Mali_Pf3D7_03_v3.recode.vcf",
-            "subtelomeric_no_indels_pf3k_Mali_Pf3D7_04_v3.recode.vcf",
-            "subtelomeric_no_indels_pf3k_Mali_Pf3D7_05_v3.recode.vcf",
-            "subtelomeric_no_indels_pf3k_Mali_Pf3D7_06_v3.recode.vcf",
-            "subtelomeric_no_indels_pf3k_Mali_Pf3D7_07_v3.recode.vcf",
-            "subtelomeric_no_indels_pf3k_Mali_Pf3D7_08_v3.recode.vcf",
-            "subtelomeric_no_indels_pf3k_Mali_Pf3D7_09_v3.recode.vcf",
-            "subtelomeric_no_indels_pf3k_Mali_Pf3D7_10_v3.recode.vcf",
-            "subtelomeric_no_indels_pf3k_Mali_Pf3D7_11_v3.recode.vcf",
-            "subtelomeric_no_indels_pf3k_Mali_Pf3D7_12_v3.recode.vcf",
-            "subtelomeric_no_indels_pf3k_Mali_Pf3D7_13_v3.recode.vcf",
-            "subtelomeric_no_indels_pf3k_Mali_Pf3D7_14_v3.recode.vcf"]
+# file output prefix:
+prefix = sys.argv[1]
+# path to vcf:
+vcf_path = sys.argv[2]
 
 
-def calculateHapDiv(region):
-    """ Calculates haplotypic diversity for a given region of a vcf.
-    Subjects with missing data for 1+ variant will be removed
-    before calculation.
+def removeMissingStats(region):
+    """ Calculates haplotype frequencies, haplotypic diversity, and nucleotide
+    diversity for a given region of a vcf. Subjects with missing data for
+    1+ variant will be removed before calculation.
 
     Args:
       region: a haplotypeArray covering coordinates of interest.
 
     Returns:
-      Haplotypic diversity based on subjects with complete data for every
-      variant in the region. Returns 0 if only 1 subject present.
+      List containing:
+        - Number of individuals with no missing variant data in this region;
+          only these individuals' data is used in further calculations.
+        - Haplotypic diversity for region. Returns 0 if only 1 subject present.
+        - Nucleotide diversity.
+        - List of haplotype frequencies.
     """
     # remove missing in region
     keep_subject = np.ones(region.shape[1], dtype=int)
@@ -44,29 +34,37 @@ def calculateHapDiv(region):
     region_complete = region.compress(condition=keep_subject, axis=1)
     # calculate haplotype frequencies
     freqs = region_complete.distinct_frequencies()
-    n = region_complete.n_haplotypes
-    homozygosity = sum(freqs**2)
-    if n == 1:
+    nh = region_complete.n_haplotypes
+    if nh == 1:
         hap_div = 0
     else:
-        hap_div = (1 - homozygosity) * (n/(n-1))
-    return hap_div
+        hap_div = allel.haplotype_diversity(region_complete)
+    # calculate nucleotide diversity specifically on nonmissing region
+    ac = region_complete.count_alleles()
+    diffs = allel.mean_pairwise_difference(ac, fill=0)
+    pi = np.sum(diffs)/200
+    return [nh, hap_div, pi, freqs]
 
 
-for chrom in vcf_list:
-    callset = allel.read_vcf(chrom)
-    # create genotype array
+chromosomes = allel.read_vcf(vcf_path, fields=['CHROM'])
+chromosomes_list = np.unique(chromosomes['variants/CHROM'])
+for chrom in chromosomes_list:
+    print(chrom)
+    # read in that chromosome data only
+    callset = allel.read_vcf(vcf_path, region=chrom, fields='*')
     gt = allel.GenotypeArray(callset["calldata/GT"])
-    # remove any het calls
+    # remove any het calls, convert to haploid
     gt.mask = gt.is_het()
     gt_hom_only = gt.fill_masked(value=-1)
     gt_hap_array = gt_hom_only.haploidify_samples()
-    H, windows, n_var = allel.windowed_statistic(pos=callset["variants/POS"],
-                                                 values=gt_hap_array,
-                                                 statistic=calculateHapDiv,
-                                                 size=200, step=50,
-                                                 start=1)
-    df = pd.DataFrame(list(zip(H, windows, n_var)),
-                      columns=["H", "window", "n_variants"])
-    file_name = os.getcwd() + "/" + chrom[:-4] + "_hap_div.csv"
+    # remove individuals with missing data and calculate stats
+    n_list, w, n = allel.windowed_statistic(pos=callset["variants/POS"],
+                                            values=gt_hap_array,
+                                            statistic=removeMissingStats,
+                                            size=200,
+                                            step=50,
+                                            start=1)
+    df = pd.DataFrame(list(zip(n_list, w, n)),
+                      columns=["n_list", "windows_n", "n_var_n"])
+    file_name = os.getcwd() + "/" + prefix + chrom + "_hap_div.csv"
     df.to_csv(file_name, header=True)
