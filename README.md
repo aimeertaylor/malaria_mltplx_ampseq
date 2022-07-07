@@ -1,5 +1,5 @@
 # malaria_mltplx_ampseq
-All code-related files pertaining to the Neafsey lab malaria mltplx ampseq project besides the R package https://github.com/artaylor85/paneljudge (created April 2020).
+Initial code-related files pertaining to the Neafsey lab malaria mltplx ampseq project besides the R package https://github.com/artaylor85/paneljudge (created April 2020).
 
 *Important*: all commits prior to and inc. 11th April 2020 pertain to work done without use of the package paneljudge. 
 
